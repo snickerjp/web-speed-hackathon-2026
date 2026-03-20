@@ -1,6 +1,6 @@
 import { Router } from "express";
 import httpErrors from "http-errors";
-import { col, where, Op } from "sequelize";
+import { Op } from "sequelize";
 
 import { eventhub } from "@web-speed-hackathon-2026/server/src/eventhub";
 import {
@@ -16,20 +16,48 @@ directMessageRouter.get("/dm", async (req, res) => {
     throw new httpErrors.Unauthorized();
   }
 
-  const conversations = await DirectMessageConversation.findAll({
+  const userId = req.session.userId;
+
+  // Fetch conversations without messages (bypass heavy defaultScope)
+  const conversations = await DirectMessageConversation.unscoped().findAll({
+    include: [
+      { association: "initiator", include: [{ association: "profileImage" }] },
+      { association: "member", include: [{ association: "profileImage" }] },
+    ],
     where: {
-      [Op.and]: [
-        { [Op.or]: [{ initiatorId: req.session.userId }, { memberId: req.session.userId }] },
-        where(col("messages.id"), { [Op.not]: null }),
-      ],
+      [Op.or]: [{ initiatorId: userId }, { memberId: userId }],
     },
-    order: [[col("messages.createdAt"), "DESC"]],
   });
 
-  const sorted = conversations.map((c) => ({
-    ...c.toJSON(),
-    messages: c.messages?.reverse(),
-  }));
+  // For each conversation, get last message + unread status
+  const results = await Promise.all(
+    conversations.map(async (c) => {
+      const lastMessage = await DirectMessage.findOne({
+        where: { conversationId: c.id },
+        order: [["createdAt", "DESC"]],
+      });
+      if (lastMessage == null) return null;
+
+      const peerId = c.initiatorId !== userId ? c.initiatorId : c.memberId;
+      const unreadCount = await DirectMessage.unscoped().count({
+        where: { conversationId: c.id, senderId: peerId, isRead: false },
+      });
+
+      return {
+        ...c.toJSON(),
+        messages: [lastMessage.toJSON()],
+        hasUnread: unreadCount > 0,
+      };
+    }),
+  );
+
+  const sorted = results
+    .filter((r): r is NonNullable<typeof r> => r != null)
+    .sort((a, b) => {
+      const aTime = new Date(a.messages[0]!.createdAt).getTime();
+      const bTime = new Date(b.messages[0]!.createdAt).getTime();
+      return bTime - aTime;
+    });
 
   return res.status(200).type("application/json").send(sorted);
 });
