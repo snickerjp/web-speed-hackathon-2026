@@ -17,42 +17,35 @@ export const PausableMovie = ({ poster, src }: Props) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
 
-  // 動画が自動で再生されること - IntersectionObserverでビューポートに入ったら再生開始
+  // 動画が自動で再生されること - ユーザー操作または一定時間後に再生開始
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) {
-          setShowVideo(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "200px" },
-    );
-    observer.observe(video);
-    return () => observer.disconnect();
+    const start = () => {
+      setShowVideo(true);
+      cleanup();
+    };
+    const timer = setTimeout(start, 10000);
+    const cleanup = () => {
+      clearTimeout(timer);
+      window.removeEventListener("scroll", start);
+    };
+    window.addEventListener("scroll", start, { passive: true, once: true });
+    return cleanup;
   }, []);
 
   useEffect(() => {
-    if (showVideo) {
-      const video = videoRef.current;
-      if (video) {
-        video.src = src;
-        video.play().then(() => setIsPlaying(true)).catch(() => {});
-      }
+    if (showVideo && videoRef.current) {
+      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
     }
-  }, [showVideo, src]);
+  }, [showVideo]);
 
   const handleClick = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
     if (!showVideo) {
       setShowVideo(true);
       return;
     }
+    const video = videoRef.current;
+    if (!video) return;
     if (isPlaying) {
       video.pause();
     } else {
@@ -69,14 +62,19 @@ export const PausableMovie = ({ poster, src }: Props) => {
         onClick={handleClick}
         type="button"
       >
-        <video
-          ref={videoRef}
-          className="w-full"
-          loop
-          muted
-          playsInline
-          poster={poster}
-        />
+        {showVideo ? (
+          <video
+            ref={videoRef}
+            className="w-full"
+            loop
+            muted
+            playsInline
+            poster={poster}
+            src={src}
+          />
+        ) : (
+          poster ? <img src={poster} alt="" className="w-full h-full object-cover" /> : null
+        )}
         <div
           className={classNames(
             "absolute left-1/2 top-1/2 flex items-center justify-center w-16 h-16 text-cax-surface-raised text-3xl bg-cax-overlay/50 rounded-full -translate-x-1/2 -translate-y-1/2",
