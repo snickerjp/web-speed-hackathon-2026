@@ -2,6 +2,10 @@ export function getImagePath(imageId: string): string {
   return `/images/${imageId}.webp`;
 }
 
+export function getMoviePosterPath(movieId: string): string {
+  return `/movies/${movieId}.poster.webp`;
+}
+
 export function getMoviePath(movieId: string): string {
   return `/movies/${movieId}.mp4`;
 }

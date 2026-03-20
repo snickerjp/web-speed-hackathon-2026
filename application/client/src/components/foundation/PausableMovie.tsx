@@ -1,30 +1,65 @@
 import classNames from "classnames";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AspectRatioBox } from "@web-speed-hackathon-2026/client/src/components/foundation/AspectRatioBox";
 import { FontAwesomeIcon } from "@web-speed-hackathon-2026/client/src/components/foundation/FontAwesomeIcon";
 
 interface Props {
+  poster?: string;
   src: string;
 }
 
 /**
  * クリックすると再生・一時停止を切り替えます。
  */
-export const PausableMovie = ({ src }: Props) => {
+export const PausableMovie = ({ poster, src }: Props) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
+
+  // 動画が自動で再生されること - IntersectionObserverでビューポートに入ったら再生開始
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setShowVideo(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (showVideo) {
+      const video = videoRef.current;
+      if (video) {
+        video.src = src;
+        video.play().then(() => setIsPlaying(true)).catch(() => {});
+      }
+    }
+  }, [showVideo, src]);
 
   const handleClick = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
+    if (!showVideo) {
+      setShowVideo(true);
+      return;
+    }
     if (isPlaying) {
       video.pause();
     } else {
       video.play();
     }
     setIsPlaying(!isPlaying);
-  }, [isPlaying]);
+  }, [isPlaying, showVideo]);
 
   return (
     <AspectRatioBox aspectHeight={1} aspectWidth={1}>
@@ -36,13 +71,11 @@ export const PausableMovie = ({ src }: Props) => {
       >
         <video
           ref={videoRef}
-          // 視覚効果 off のとき動画を自動再生しない
-          autoPlay={!window.matchMedia("(prefers-reduced-motion: reduce)").matches}
           className="w-full"
           loop
           muted
           playsInline
-          src={src}
+          poster={poster}
         />
         <div
           className={classNames(
