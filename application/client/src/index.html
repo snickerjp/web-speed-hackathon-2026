@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CaX</title>
-    <link rel="preload" as="image" href="/movies/51a14d70-9dd6-45ad-9f87-64af91ec2779.poster.webp" />
+    <link rel="preload" as="image" href="/movies/51a14d70-9dd6-45ad-9f87-64af91ec2779.poster.webp" fetchpriority="high" />
   </head>
   <body class="bg-cax-canvas text-cax-text">
     <div id="app">
@@ -47,13 +47,22 @@
               ></div>
               <div
                 style="
-                  height: 200px;
                   width: 100%;
                   background: #e5e5e5;
                   border-radius: 8px;
                   margin-bottom: 16px;
+                  aspect-ratio: 1/1;
+                  overflow: hidden;
                 "
-              ></div>
+              >
+                <img
+                  src="/movies/51a14d70-9dd6-45ad-9f87-64af91ec2779.poster.webp"
+                  alt=""
+                  fetchpriority="high"
+                  decoding="async"
+                  style="width: 100%; height: 100%; object-fit: cover"
+                />
+              </div>
               <div
                 style="
                   height: 16px;
