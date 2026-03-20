@@ -13,23 +13,13 @@ export const staticRouter = Router();
 // SPA 対応のため、ファイルが存在しないときに index.html を返す
 staticRouter.use(history());
 
-staticRouter.use(
-  serveStatic(UPLOAD_PATH, {
-    etag: false,
-    lastModified: false,
-  }),
-);
+const staticOptions = {
+  etag: true,
+  lastModified: true,
+  maxAge: "7d",
+  immutable: true,
+};
 
-staticRouter.use(
-  serveStatic(PUBLIC_PATH, {
-    etag: false,
-    lastModified: false,
-  }),
-);
-
-staticRouter.use(
-  serveStatic(CLIENT_DIST_PATH, {
-    etag: false,
-    lastModified: false,
-  }),
-);
+staticRouter.use(serveStatic(UPLOAD_PATH, staticOptions));
+staticRouter.use(serveStatic(PUBLIC_PATH, staticOptions));
+staticRouter.use(serveStatic(CLIENT_DIST_PATH, staticOptions));
