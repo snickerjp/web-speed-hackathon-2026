@@ -91,11 +91,12 @@ export const ChatInput = ({ isStreaming, onSendMessage }: Props) => {
     }
   }, [suggestions, showSuggestions]);
 
-  // 初回にkuromojiトークナイザーを構築
-  useEffect(() => {
-    let mounted = true;
-
-    const init = async () => {
+  // 初回入力時にkuromojiトークナイザーを構築（遅延初期化）
+  const initStarted = useRef(false);
+  const initKuromoji = () => {
+    if (initStarted.current || tokenizer) return;
+    initStarted.current = true;
+    (async () => {
       const [Bluebird, kuromoji, bm25] = await Promise.all([
         import("bluebird"),
         import("kuromoji"),
@@ -103,17 +104,12 @@ export const ChatInput = ({ isStreaming, onSendMessage }: Props) => {
       ]);
       const builder = Bluebird.default.promisifyAll(kuromoji.default.builder({ dicPath: "/dicts" }));
       const nextTokenizer = await builder.buildAsync();
-      if (mounted) {
-        setTokenizer(nextTokenizer);
-        setBm25Utils({ extractTokens: bm25.extractTokens, filterSuggestionsBM25: bm25.filterSuggestionsBM25 });
-      }
-    };
-    init();
+      setTokenizer(nextTokenizer);
+      setBm25Utils({ extractTokens: bm25.extractTokens, filterSuggestionsBM25: bm25.filterSuggestionsBM25 });
+    })();
+  };
 
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const suggestionsCache = useRef<string[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,11 +122,12 @@ export const ChatInput = ({ isStreaming, onSendMessage }: Props) => {
         return;
       }
 
-      const { suggestions: candidates } = await fetchJSON<{ suggestions: string[] }>(
-        "/api/v1/crok/suggestions",
-      );
-      if (cancelled) {
-        return;
+      let candidates = suggestionsCache.current;
+      if (!candidates) {
+        const res = await fetchJSON<{ suggestions: string[] }>("/api/v1/crok/suggestions");
+        if (cancelled) return;
+        candidates = res.suggestions;
+        suggestionsCache.current = candidates;
       }
 
       const tokens = bm25Utils.extractTokens(tokenizer.tokenize(inputValue));
@@ -145,10 +142,11 @@ export const ChatInput = ({ isStreaming, onSendMessage }: Props) => {
       setShowSuggestions(results.length > 0);
     };
 
-    void updateSuggestions();
+    const timer = setTimeout(updateSuggestions, 300);
 
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [inputValue, tokenizer, bm25Utils]);
 
@@ -170,6 +168,7 @@ export const ChatInput = ({ isStreaming, onSendMessage }: Props) => {
     const value = e.target.value;
     setInputValue(value);
     adjustTextareaHeight();
+    initKuromoji();
   };
 
   const handleSuggestionClick = (suggestion: string) => {
