@@ -61,7 +61,7 @@ const config = {
     chunkFilename: "scripts/chunk-[contenthash].js",
     filename: "scripts/[name].js",
     path: DIST_PATH,
-    publicPath: "auto",
+    publicPath: "/",
     clean: true,
   },
   plugins: [
@@ -72,8 +72,23 @@ const config = {
       BUILD_DATE: new Date().toISOString(),
       // Heroku では SOURCE_VERSION 環境変数から commit hash を参照できます
       COMMIT_HASH: process.env.SOURCE_VERSION || "",
-      NODE_ENV: "development",
+      NODE_ENV: "production",
     }),
+    new webpack.NormalModuleReplacementPlugin(
+      /[\\/]cjs[\\/].*\.development\.js$/,
+      (resource) => {
+        const r = resource.createData?.resource || resource.request;
+        if (!r) return;
+        const prodPath = r.replace(".development.js", ".production.js");
+        const prodMinPath = r.replace(".development.js", ".production.min.js");
+        const fs = require("fs");
+        const replacement = fs.existsSync(prodPath) ? prodPath : fs.existsSync(prodMinPath) ? prodMinPath : null;
+        if (replacement) {
+          if (resource.createData?.resource) resource.createData.resource = replacement;
+          if (resource.request?.includes(".development.js")) resource.request = resource.request.replace(".development.js", replacement.endsWith(".min.js") ? ".production.min.js" : ".production.js");
+        }
+      },
+    ),
     new MiniCssExtractPlugin({
       filename: "styles/[name].css",
     }),
