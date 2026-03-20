@@ -71,6 +71,7 @@ export const DirectMessageContainer = ({ activeUser, authModalId }: Props) => {
         // Append new message to local state instead of re-fetching all messages
         setConversation((prev) => {
           if (prev == null) return prev;
+          if (prev.messages?.some((m) => m.id === newMessage.id)) return prev;
           return { ...prev, messages: [...(prev.messages ?? []), newMessage] };
         });
       } finally {
