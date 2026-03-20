@@ -78,7 +78,10 @@ export const ChatInput = ({ isStreaming, onSendMessage }: Props) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const [tokenizer, setTokenizer] = useState<any>(null);
-  const [bm25Utils, setBm25Utils] = useState<{ extractTokens: typeof ExtractTokensFn; filterSuggestionsBM25: typeof FilterSuggestionsBM25Fn } | null>(null);
+  const [bm25Utils, setBm25Utils] = useState<{
+    extractTokens: typeof ExtractTokensFn;
+    filterSuggestionsBM25: typeof FilterSuggestionsBM25Fn;
+  } | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [queryTokens, setQueryTokens] = useState<string[]>([]);
@@ -102,10 +105,15 @@ export const ChatInput = ({ isStreaming, onSendMessage }: Props) => {
         import("kuromoji"),
         import("@web-speed-hackathon-2026/client/src/utils/bm25_search"),
       ]);
-      const builder = Bluebird.default.promisifyAll(kuromoji.default.builder({ dicPath: "/dicts" }));
+      const builder = Bluebird.default.promisifyAll(
+        kuromoji.default.builder({ dicPath: "/dicts" }),
+      );
       const nextTokenizer = await builder.buildAsync();
       setTokenizer(nextTokenizer);
-      setBm25Utils({ extractTokens: bm25.extractTokens, filterSuggestionsBM25: bm25.filterSuggestionsBM25 });
+      setBm25Utils({
+        extractTokens: bm25.extractTokens,
+        filterSuggestionsBM25: bm25.filterSuggestionsBM25,
+      });
     })();
   };
 

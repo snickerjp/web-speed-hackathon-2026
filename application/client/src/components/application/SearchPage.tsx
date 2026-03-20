@@ -53,18 +53,19 @@ const SearchPageComponent = ({
     }
 
     let isMounted = true;
-    import("@web-speed-hackathon-2026/client/src/utils/negaposi_analyzer").then(({ analyzeSentiment }) =>
-      analyzeSentiment(parsed.keywords)
-        .then((result) => {
-          if (isMounted) {
-            setIsNegative(result.label === "negative");
-          }
-        })
-        .catch(() => {
-          if (isMounted) {
-            setIsNegative(false);
-          }
-        }),
+    import("@web-speed-hackathon-2026/client/src/utils/negaposi_analyzer").then(
+      ({ analyzeSentiment }) =>
+        analyzeSentiment(parsed.keywords)
+          .then((result) => {
+            if (isMounted) {
+              setIsNegative(result.label === "negative");
+            }
+          })
+          .catch(() => {
+            if (isMounted) {
+              setIsNegative(false);
+            }
+          }),
     );
 
     return () => {

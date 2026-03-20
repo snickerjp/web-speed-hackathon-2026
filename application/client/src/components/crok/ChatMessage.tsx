@@ -11,7 +11,11 @@ const remarkMath = import("remark-math").then((m) => m.default);
 const rehypeKatex = import("rehype-katex").then((m) => m.default);
 let plugins: { remarkPlugins: any[]; rehypePlugins: any[] } | null = null;
 const getPlugins = async () => {
-  if (!plugins) plugins = { remarkPlugins: [await remarkMath, await remarkGfm], rehypePlugins: [await rehypeKatex] };
+  if (!plugins)
+    plugins = {
+      remarkPlugins: [await remarkMath, await remarkGfm],
+      rehypePlugins: [await rehypeKatex],
+    };
   return plugins;
 };
 
@@ -31,7 +35,9 @@ const UserMessage = ({ content }: { content: string }) => {
 
 const AssistantMessage = ({ content }: { content: string }) => {
   const [loadedPlugins, setLoadedPlugins] = React.useState(plugins);
-  React.useEffect(() => { if (!loadedPlugins) getPlugins().then(setLoadedPlugins); }, []);
+  React.useEffect(() => {
+    if (!loadedPlugins) getPlugins().then(setLoadedPlugins);
+  }, []);
   return (
     <div className="mb-6 flex gap-4">
       <div className="h-8 w-8 shrink-0">
