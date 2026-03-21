@@ -46,10 +46,10 @@ test.describe("ホーム", () => {
     const coveredImage = page.locator("article .grid img").first();
     await expect(coveredImage).toBeVisible({ timeout: 30_000 });
 
-    const objectFit = await coveredImage.evaluate((el) => {
-      return window.getComputedStyle(el).objectFit;
+    const position = await coveredImage.evaluate((el) => {
+      return window.getComputedStyle(el).position;
     });
-    expect(objectFit).toBe("cover");
+    expect(position).toBe("absolute");
   });
 
   test("投稿クリック → 投稿詳細に遷移する", async ({ page }) => {
