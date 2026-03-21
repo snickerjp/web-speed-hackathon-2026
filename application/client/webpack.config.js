@@ -155,7 +155,7 @@ const config = {
   optimization: {
     minimize: true,
     splitChunks: {
-      chunks: "all",
+      chunks: "initial",
       maxInitialRequests: 10,
       cacheGroups: {
         // react-dom を単独チャンクに (最大のライブラリ)
