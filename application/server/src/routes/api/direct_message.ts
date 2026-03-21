@@ -29,29 +29,44 @@ directMessageRouter.get("/dm", async (req, res) => {
     },
   });
 
-  // For each conversation, get last message + unread status
-  const results = await Promise.all(
-    conversations.map(async (c) => {
-      const lastMessage = await DirectMessage.findOne({
-        where: { conversationId: c.id },
-        order: [["createdAt", "DESC"]],
-      });
-      if (lastMessage == null) return null;
+  // For each conversation, get last message + unread status in bulk
+  const conversationIds = conversations.map((c) => c.id);
 
-      const peerId = c.initiatorId !== userId ? c.initiatorId : c.memberId;
-      const unreadCount = await DirectMessage.unscoped().count({
-        where: { conversationId: c.id, senderId: peerId, isRead: false },
-      });
+  // Bulk: last message per conversation (1 query)
+  const lastMessages = await DirectMessage.findAll({
+    where: { conversationId: conversationIds },
+    order: [["createdAt", "DESC"]],
+  });
+  const lastMessageMap = new Map<string, typeof lastMessages[0]>();
+  for (const msg of lastMessages) {
+    if (!lastMessageMap.has(msg.conversationId)) {
+      lastMessageMap.set(msg.conversationId, msg);
+    }
+  }
 
+  // Bulk: unread counts per conversation (1 query)
+  const unreadRows = await DirectMessage.unscoped().findAll({
+    attributes: ["conversationId", [DirectMessage.sequelize!.fn("COUNT", "*"), "cnt"]],
+    where: {
+      conversationId: conversationIds,
+      senderId: { [Op.ne]: userId },
+      isRead: false,
+    },
+    group: ["conversationId"],
+    raw: true,
+  }) as unknown as { conversationId: string; cnt: number }[];
+  const unreadMap = new Map(unreadRows.map((r) => [r.conversationId, Number(r.cnt)]));
+
+  const results = conversations
+    .map((c) => {
+      const lastMessage = lastMessageMap.get(c.id);
+      if (!lastMessage) return null;
       return {
         ...c.toJSON(),
         messages: [lastMessage.toJSON()],
-        hasUnread: unreadCount > 0,
+        hasUnread: (unreadMap.get(c.id) ?? 0) > 0,
       };
-    }),
-  );
-
-  const sorted = results
+    })
     .filter((r): r is NonNullable<typeof r> => r != null)
     .sort((a, b) => {
       const aTime = new Date(a.messages[0]!.createdAt).getTime();
@@ -59,7 +74,7 @@ directMessageRouter.get("/dm", async (req, res) => {
       return bTime - aTime;
     });
 
-  return res.status(200).type("application/json").send(sorted);
+  return res.status(200).type("application/json").send(results);
 });
 
 directMessageRouter.post("/dm", async (req, res) => {
