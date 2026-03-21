@@ -12,9 +12,14 @@ export const crokRouter = Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const response = fs.readFileSync(path.join(__dirname, "crok-response.md"), "utf-8");
 
+let cachedSuggestions: string[] | null = null;
+
 crokRouter.get("/crok/suggestions", async (_req, res) => {
-  const suggestions = await QaSuggestion.findAll({ logging: false });
-  res.json({ suggestions: suggestions.map((s) => s.question) });
+  if (!cachedSuggestions) {
+    const suggestions = await QaSuggestion.findAll({ logging: false });
+    cachedSuggestions = suggestions.map((s) => s.question);
+  }
+  res.json({ suggestions: cachedSuggestions });
 });
 
 function sleep(ms: number): Promise<void> {
