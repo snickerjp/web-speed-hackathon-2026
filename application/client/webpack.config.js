@@ -100,6 +100,18 @@ const config = {
           from: path.resolve(__dirname, "node_modules/katex/dist/fonts"),
           to: path.resolve(DIST_PATH, "styles/fonts"),
         },
+        {
+          from: path.resolve(__dirname, "node_modules/@ffmpeg/core/dist/umd/ffmpeg-core.js"),
+          to: path.resolve(DIST_PATH, "scripts/ffmpeg-core.js"),
+        },
+        {
+          from: path.resolve(__dirname, "node_modules/@ffmpeg/core/dist/umd/ffmpeg-core.wasm"),
+          to: path.resolve(DIST_PATH, "scripts/ffmpeg-core.wasm"),
+        },
+        {
+          from: path.resolve(__dirname, "node_modules/@imagemagick/magick-wasm/dist/magick.wasm"),
+          to: path.resolve(DIST_PATH, "scripts/magick.wasm"),
+        },
       ],
     }),
     new HtmlWebpackPlugin({
