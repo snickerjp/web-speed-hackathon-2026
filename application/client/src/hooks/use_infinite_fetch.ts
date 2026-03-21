@@ -12,13 +12,15 @@ interface ReturnValues<T> {
 export function useInfiniteFetch<T>(
   apiPath: string | null,
   fetcher: (apiPath: string) => Promise<T[]>,
+  initialData?: T[],
 ): ReturnValues<T> {
-  const internalRef = useRef({ isLoading: false, offset: 0 });
+  const hasInitialData = (initialData?.length ?? 0) > 0;
+  const internalRef = useRef({ isLoading: false, offset: hasInitialData ? (initialData?.length ?? 0) : 0 });
 
   const [result, setResult] = useState<Omit<ReturnValues<T>, "fetchMore">>({
-    data: [],
+    data: initialData ?? [],
     error: null,
-    isLoading: apiPath !== null,
+    isLoading: apiPath !== null && !hasInitialData,
   });
 
   const fetchMore = useCallback(() => {
@@ -66,18 +68,20 @@ export function useInfiniteFetch<T>(
 
   useEffect(() => {
     setResult(() => ({
-      data: [],
+      data: initialData ?? [],
       error: null,
-      isLoading: apiPath !== null,
+      isLoading: apiPath !== null && !hasInitialData,
     }));
     internalRef.current = {
       isLoading: false,
-      offset: 0,
+      offset: hasInitialData ? (initialData?.length ?? 0) : 0,
     };
 
-    if (apiPath !== null) {
+    if (apiPath !== null && !hasInitialData) {
       fetchMore();
     }
+    // initialData は window.__INITIAL_POSTS__ から一度だけ読まれる値のため deps から除外
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiPath, fetchMore]);
 
   return {
